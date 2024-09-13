@@ -30,8 +30,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 
 
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -43,9 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # External packages
     'rest_framework',
-
     # Internal apps
-
+    'ecommerce.product',
 ]
 
 MIDDLEWARE = [
