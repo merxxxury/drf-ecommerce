@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # External packages
     'rest_framework',
+    'drf_spectacular',
     # Internal apps
     'ecommerce.product',
 ]

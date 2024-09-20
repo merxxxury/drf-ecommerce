@@ -5,5 +5,9 @@ db.sqlite3
 .pytest_cache
 **__pycache__/
 .coverage
+htmlcov/
 .idea
+schema.yml
+schema.yaml
+commands.md
 
