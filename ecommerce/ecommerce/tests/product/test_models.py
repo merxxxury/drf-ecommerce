@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 
 
 # pytestmark = pytest.mark.django_db  # use this specific variable to get access to db
@@ -9,7 +10,7 @@ import pytest
 class TestCategoryModel:
     def test_str_method(self, category_factory):
         # category_factory is specific variable
-        # created from name of factory class but lowercase and _ instead of whitespace
+        # created from name of factory class but lowercase and _ before capital letters
 
         # Test Structure:
         # Arrange
@@ -41,3 +42,63 @@ class TestProductModel:
     def test_str_method(self, product_factory):
         obj = product_factory(name='product2_test')
         assert obj.__str__() == 'product2_test'
+
+
+@pytest.mark.django_db
+class TestProductLineModel:
+    def test_str_method(self, product_line_factory):
+
+        obj = product_line_factory()
+        assert obj.__str__() == f'{obj.product_id.name} - {obj.sku}'
+
+    DISPLAY_ORDER = 5
+
+    def test_duplicate_display_order(self, product_line_factory, product_factory):
+        product = product_factory()
+        product_line_factory(display_order=self.DISPLAY_ORDER, product_id=product)
+
+        with pytest.raises(ValidationError) as excinfo:
+            product_line_factory(display_order=self.DISPLAY_ORDER, product_id=product)
+
+        assert excinfo.value.message_dict['display_order'] == [
+            f'The display order "{self.DISPLAY_ORDER}" is already in use for this product. Please choose a different value.'
+        ]
+
+    def test_display_order_unique_across_different_products(
+        self, product_line_factory, product_factory
+    ):
+        product_1 = product_factory()
+        product_2 = product_factory()
+
+        product_line_factory(display_order=1, product_id=product_1)
+        product_line_2 = product_line_factory(display_order=1, product_id=product_2)
+
+        assert product_line_2 is not None
+
+
+@pytest.mark.django_db
+class TestAttributeModel:
+    def test_str_method(self, attribute_factory):
+        obj = attribute_factory(name='Attr_1')
+        assert obj.__str__() == 'Attr_1'
+
+
+@pytest.mark.django_db
+class TestAttributeValueModel:
+    def test_str_method(self, attribute_value_factory):
+        obj = attribute_value_factory(value='AttrValue_1')
+        assert obj.__str__() == 'AttrValue_1'
+
+
+@pytest.mark.django_db
+class TestProductImageModel:
+    def test_str_method(
+        self, product_image_factory, product_factory, product_line_factory
+    ):
+        product = product_factory(name='Product_99')
+        product_line = product_line_factory(product_id=product, sku='sku123')
+        obj = product_image_factory(name='Image_1', product_line_id=product_line)
+        assert (
+            obj.__str__()
+            == f'Image_1-{product_line.product_id.name} - {product_line.sku}'
+        )
