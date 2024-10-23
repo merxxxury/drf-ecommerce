@@ -105,10 +105,14 @@ class ProductLine(models.Model):
 
 
 class ProductImage(models.Model):
-    name = models.CharField(max_length=250, blank=True)
     alternative_text = models.CharField(max_length=250, blank=True)
-    location = models.URLField()
-    product_line_id = models.ForeignKey(ProductLine, on_delete=models.CASCADE)
+    url = models.ImageField(upload_to=None, default='test.jpg')
+    product_line_id = models.ForeignKey(
+        ProductLine, on_delete=models.CASCADE, related_name='product_image'
+    )
+    display_order = OrderingField(
+        unique_for_field='product_line_id', blank=True, null=True
+    )
 
     def __str__(self):
-        return f'{self.name}-{str(self.product_line_id)}'
+        return f'pl_{str(self.product_line_id.slug)}/order_{str(self.display_order)}'

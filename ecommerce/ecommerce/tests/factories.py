@@ -89,9 +89,6 @@ class ProductImageFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = ProductImage
 
-    name = factory.Faker('word')  # Random word for name
     alternative_text = factory.Faker('sentence')  # Random sentence for alt text
-    location = factory.Faker('url')  # Random URL for location
-    product_line_id = factory.SubFactory(
-        ProductLineFactory
-    )  # Links to a ProductLine instance
+    url = factory.Faker('url')  # Random URL for location
+    product_line_id = factory.SubFactory(ProductLineFactory)
