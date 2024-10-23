@@ -3,13 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db import connection
 
-from pygments import highlight
-from pygments.formatters.terminal import TerminalFormatter
-from pygments.lexers.sql import SqlLexer
-from sqlparse import format
 
-from rest_framework import generics
-from drf_spectacular.utils import extend_schema
+from .utils import inspect_queries
 
 
 from .models import Category, Brand, Product, ProductLine
@@ -65,17 +60,21 @@ class ProductViewSet(viewsets.ViewSet):
     lookup_field = 'slug'
 
     def retrieve(self, request, slug=None):
-        serializer = ProductSerializer(self.queryset.filter(slug=slug), many=True)
+        serializer = ProductSerializer(
+            Product.active.filter(slug=slug)
+            .select_related('category_id', 'brand_id')
+            .prefetch_related(
+                'product_line__attributes',
+                'product_line__product_image',
+            ),
+            many=True,
+        )
 
         data = Response(serializer.data)
 
-        # # Queries inspection. DRY => utils.py
-        # queries = list(connection.queries)
-        #
-        # for query in queries:
-        #     sql_formatted = format(str(query['sql']), reindent=True)
-        #     print(highlight(sql_formatted, SqlLexer(), TerminalFormatter()))
-        # print('Number of queries: ', len(queries))
+        # function from utils.py to inspect queries
+        # print(inspect_queries(connection.queries))
+
         return data
 
     def list(self, request):

@@ -96,9 +96,10 @@ class TestProductImageModel:
         self, product_image_factory, product_factory, product_line_factory
     ):
         product = product_factory(name='Product_99')
-        product_line = product_line_factory(product_id=product, sku='sku123')
-        obj = product_image_factory(name='Image_1', product_line_id=product_line)
-        assert (
-            obj.__str__()
-            == f'Image_1-{product_line.product_id.name} - {product_line.sku}'
+        product_line = product_line_factory(
+            product_id=product, slug='product-line-99', sku='sku123'
         )
+        obj = product_image_factory(
+            alternative_text='Image_1', product_line_id=product_line, display_order=1
+        )
+        assert obj.__str__() == f'pl_{product_line.slug}/order_{obj.display_order}'

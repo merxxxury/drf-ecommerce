@@ -40,14 +40,32 @@ class AttributeValueSerializer(serializers.ModelSerializer):
         exclude = ['id']
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        exclude = ['id', 'product_line_id']
+
+
 class ProductLineSerializer(serializers.ModelSerializer):
     # product_id = ProductSerializer(read_only=True)
     attributes = AttributeValueSerializer(many=True, read_only=True)
+    # related_name='product_image' in ProductImage model to ProductLine model
+    product_image = ProductImageSerializer(many=True)
 
     class Meta:
         model = ProductLine
         # fields = '__all__'
-        exclude = ['id', 'product_id', 'created_at', 'updated_at', 'is_active']
+        fields = [
+            'price',
+            'slug',
+            'second_name',
+            'second_description',
+            'quantity',
+            'sku',
+            'attributes',
+            'display_order',
+            'product_image',
+        ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -73,7 +91,6 @@ class ProductSerializer(serializers.ModelSerializer):
     # brand_id = BrandSerializer(read_only=True)
     category_name = serializers.CharField(source='category_id.name', read_only=True)
     category_slug = serializers.CharField(source='category_id.slug', read_only=True)
-    # category_name = serializers.CharField(source='name')
 
     # product_line is related name in ProductLine model
     product_line = ProductLineSerializer(many=True)
