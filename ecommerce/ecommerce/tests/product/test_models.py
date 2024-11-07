@@ -38,17 +38,18 @@ class TestProductModel:
         assert obj.is_matcha is True
         assert obj.category_id is not None
         assert obj.brand_id is not None
+        assert obj.product_type_id is not None
 
     def test_str_method(self, product_factory):
-        obj = product_factory(name='product2_test')
-        assert obj.__str__() == 'product2_test'
+        obj = product_factory()
+        assert obj.__str__() == obj.name
 
 
 @pytest.mark.django_db
 class TestProductLineModel:
-    def test_str_method(self, product_line_factory):
-
-        obj = product_line_factory()
+    def test_str_method(self, product_line_factory, attribute_value_factory):
+        attrs = attribute_value_factory()
+        obj = product_line_factory(attributes=(attrs,))
         assert obj.__str__() == f'{obj.product_id.name} - {obj.sku}'
 
     DISPLAY_ORDER = 5
@@ -87,7 +88,7 @@ class TestAttributeModel:
 class TestAttributeValueModel:
     def test_str_method(self, attribute_value_factory):
         obj = attribute_value_factory(value='AttrValue_1')
-        assert obj.__str__() == 'AttrValue_1'
+        assert obj.__str__() == f'{obj.attribute_id.name}: {obj.value}'
 
 
 @pytest.mark.django_db
@@ -103,3 +104,11 @@ class TestProductImageModel:
             alternative_text='Image_1', product_line_id=product_line, display_order=1
         )
         assert obj.__str__() == f'pl_{product_line.slug}/order_{obj.display_order}'
+
+
+@pytest.mark.django_db
+class TestProductTypeModel:
+    def test_str_method(self, product_type_factory, attribute_factory):
+        attribute = attribute_factory(name='Attribute_1')
+        product_type = product_type_factory(attributes=(attribute,))
+        assert str(product_type) == product_type.type_name

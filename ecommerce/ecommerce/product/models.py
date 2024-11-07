@@ -4,6 +4,8 @@ from mptt.models import MPTTModel, TreeForeignKey
 from .managers import IsActiveManager
 from .fields import OrderingField
 
+from django.core.exceptions import ValidationError
+
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100, unique=True)
@@ -40,6 +42,18 @@ class Brand(models.Model):
         return self.name
 
 
+class ProductType(models.Model):
+    type_name = models.CharField(max_length=150)
+    attributes = models.ManyToManyField(
+        "Attribute",
+        through='ProductTypeAttribute',
+        related_name='product_type_attribute',
+    )
+
+    def __str__(self):
+        return str(self.type_name)
+
+
 class Product(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250)
@@ -53,6 +67,9 @@ class Product(models.Model):
     )
     brand_id = models.ForeignKey(Brand, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=False)
+    product_type_id = models.ForeignKey(
+        ProductType, on_delete=models.PROTECT, related_name='product'
+    )
 
     # Managers
     objects = models.Manager()
@@ -66,15 +83,30 @@ class Attribute(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
 
 class AttributeValue(models.Model):
     value = models.CharField(max_length=100)
-    attribute_id = models.ForeignKey(Attribute, on_delete=models.CASCADE)
+    attribute_id = models.ForeignKey(
+        Attribute,
+        on_delete=models.CASCADE,
+    )
 
     def __str__(self):
-        return self.value
+        return f'{self.attribute_id.name}: {self.value}'
+
+
+class ProductTypeAttribute(models.Model):
+    product_type = models.ForeignKey(
+        ProductType, on_delete=models.CASCADE, related_name='product_type_attribute_pt'
+    )
+    attribute = models.ForeignKey(
+        Attribute, on_delete=models.CASCADE, related_name='product_type_attribute_a'
+    )
+
+    class Meta:
+        unique_together = ('product_type', 'attribute')
 
 
 class ProductLine(models.Model):
@@ -89,7 +121,10 @@ class ProductLine(models.Model):
         Product, on_delete=models.CASCADE, related_name='product_line'
     )
     attributes = models.ManyToManyField(
-        AttributeValue, blank=True, related_name='attribute_value'
+        AttributeValue,
+        blank=True,
+        through='ProductLineAttributeValue',
+        related_name='product_line_attribute_value',
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -102,6 +137,48 @@ class ProductLine(models.Model):
 
     def __str__(self):
         return f'{self.product_id.name} - {self.sku}'
+
+
+class ProductLineAttributeValue(models.Model):
+    product_line = models.ForeignKey(
+        ProductLine,
+        on_delete=models.CASCADE,
+        related_name='product_attribute_value_pl',
+    )
+    attribute_value = models.ForeignKey(
+        AttributeValue,
+        on_delete=models.CASCADE,
+        related_name='product_attribute_value_av',
+    )
+
+    class Meta:
+        unique_together = (
+            'product_line',
+            'attribute_value',
+        )
+
+    def clean(self):
+        # validate duplicates
+        attribute_name = self.attribute_value.attribute_id.name
+        if (
+            ProductLineAttributeValue.objects.filter(
+                product_line=self.product_line,
+                attribute_value__attribute_id__name=attribute_name,
+            )
+            .exclude(id=self.id)
+            .exists()
+        ):
+            raise ValidationError(
+                f"The attribute '{attribute_name}' already exists for this product line."
+            )
+
+    def save(self, *args, **kwargs):
+        # enforce validation before saving
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.attribute_value} {self.product_line}"
 
 
 class ProductImage(models.Model):

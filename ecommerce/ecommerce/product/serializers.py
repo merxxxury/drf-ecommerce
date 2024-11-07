@@ -27,8 +27,7 @@ class AttributeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Attribute
-        # fields = '__all__'
-        exclude = ['id']
+        fields = '__all__'
 
 
 class AttributeValueSerializer(serializers.ModelSerializer):
@@ -36,8 +35,7 @@ class AttributeValueSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AttributeValue
-        # fields = '__all__'
-        exclude = ['id']
+        fields = '__all__'
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -47,7 +45,6 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductLineSerializer(serializers.ModelSerializer):
-    # product_id = ProductSerializer(read_only=True)
     attributes = AttributeValueSerializer(many=True, read_only=True)
     # related_name='product_image' in ProductImage model to ProductLine model
     product_image = ProductImageSerializer(many=True)
@@ -70,13 +67,19 @@ class ProductLineSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        # deletion attributes value if it is empty
         if data['attributes']:
             # flatting json
-            flatten_attributes = {
-                item['attribute_id']['name']: item['value']
-                for item in data['attributes']
-            }
+            flatten_attributes = {}
+            for item in data['attributes']:
+                # print(item)
+                if item['attribute_id']['id'] in flatten_attributes:
+                    raise ValueError(
+                        f"Attribute with name \"{item['attribute_id']['id']}\" already exists"
+                    )
+                else:
+                    flatten_attributes.update(
+                        {item['attribute_id']['id']: item['value']}
+                    )
             data['attributes'] = flatten_attributes
         else:
             data.pop('attributes', None)
@@ -94,6 +97,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     # product_line is related name in ProductLine model
     product_line = ProductLineSerializer(many=True)
+    product_attributes = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -103,7 +107,26 @@ class ProductSerializer(serializers.ModelSerializer):
             'slug',
             'description',
             'brand_name',
-            "category_name",
+            'category_name',
             'category_slug',
             'product_line',
+            'product_attributes',
         ]
+
+    def get_product_attributes(self, obj):
+        # func syntax: get_<field_name> or specify any name in method_name parameter
+        # returns the attributes defined in the ProductType model for specific product
+        product_attributes = Attribute.objects.filter(
+            product_type_attribute__product__id=obj.id
+        )
+        return AttributeSerializer(product_attributes, many=True).data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        flatten_product_attributes = {}
+        if data['product_attributes']:
+            for item in data['product_attributes']:
+                flatten_product_attributes.update({item['id']: item['name']})
+            data['product_attributes'] = flatten_product_attributes
+
+        return data

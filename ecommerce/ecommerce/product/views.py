@@ -22,7 +22,6 @@ class CategoryViewSet(viewsets.ViewSet):
     """
 
     queryset = Category.active.all()
-    # queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
     # @extend_schema(responses=CategorySerializer)  # 0r add serializer_class
@@ -37,7 +36,6 @@ class BrandViewSet(viewsets.ViewSet):
     """
 
     queryset = Brand.active.all()
-
     serializer_class = BrandSerializer
 
     def list(self, request):
@@ -54,33 +52,35 @@ class ProductViewSet(viewsets.ViewSet):
     queryset = (
         Product.active.all()
         .select_related('category_id', 'brand_id')
-        .prefetch_related('product_line__attributes__attribute_value')
+        .prefetch_related(
+            'product_line__attributes__attribute_id',
+            'product_line__product_image',
+        )
     )
+
     serializer_class = ProductSerializer
     lookup_field = 'slug'
 
     def retrieve(self, request, slug=None):
-        serializer = ProductSerializer(
-            Product.active.filter(slug=slug)
-            .select_related('category_id', 'brand_id')
-            .prefetch_related(
-                'product_line__attributes',
-                'product_line__product_image',
-            ),
-            many=True,
-        )
+        serializer = ProductSerializer(self.queryset.filter(slug=slug), many=True)
 
         data = Response(serializer.data)
-
         # function from utils.py to inspect queries
         # print(inspect_queries(connection.queries))
 
         return data
 
     def list(self, request):
-        serializer = ProductSerializer(self.queryset, many=True)
-        # print(serializer.data)
-        return Response(serializer.data)
+        connection.queries.clear()
+
+        serializer = ProductSerializer(
+            self.queryset,
+            many=True,
+        )
+        data = Response(serializer.data)
+
+        # print (inspect_queries(connection.queries))
+        return data
 
     @action(
         detail=False,
@@ -90,7 +90,10 @@ class ProductViewSet(viewsets.ViewSet):
     def list_by_category_slug(self, request, category_slug=None):
         products_by_category = self.queryset.filter(category_id__slug=category_slug)
         serializer = ProductSerializer(products_by_category, many=True)
-        return Response(serializer.data)
+
+        data = Response(serializer.data)
+        # print (inspect_queries(connection.queries))
+        return data
 
 
 class ProductLineViewSet(viewsets.ViewSet):

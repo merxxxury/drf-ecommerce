@@ -9,6 +9,7 @@ from ecommerce.product.models import (
     Attribute,
     AttributeValue,
     ProductLine,
+    ProductType,
 )
 
 
@@ -47,6 +48,19 @@ class AttributeValueFactory(factory.django.DjangoModelFactory):
     )  # Links to an Attribute instance
 
 
+class ProductTypeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ProductType
+
+    type_name = factory.Faker('word')
+
+    @factory.post_generation
+    def attributes(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        self.attributes.add(*extracted)
+
+
 class ProductFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Product
@@ -58,6 +72,7 @@ class ProductFactory(factory.django.DjangoModelFactory):
     category_id = factory.SubFactory(CategoryFactory)
     brand_id = factory.SubFactory(BrandFactory)
     is_active = True
+    product_type_id = factory.SubFactory(ProductTypeFactory)
 
 
 class ProductLineFactory(factory.django.DjangoModelFactory):
@@ -76,13 +91,9 @@ class ProductLineFactory(factory.django.DjangoModelFactory):
 
     @factory.post_generation
     def attributes(self, create, extracted, **kwargs):
-        if not create:
+        if not create or not extracted:
             return
-        if extracted:
-            for attribute in extracted:
-                self.attributes.add(attribute)
-        else:
-            self.attributes.add(AttributeValueFactory())
+        self.attributes.add(*extracted)
 
 
 class ProductImageFactory(factory.django.DjangoModelFactory):
