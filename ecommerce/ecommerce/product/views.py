@@ -7,10 +7,9 @@ from django.db import connection
 from .utils import inspect_queries
 
 
-from .models import Category, Brand, Product, ProductLine
+from .models import Category, Product, ProductLine
 from .serializers import (
     CategorySerializer,
-    BrandSerializer,
     ProductSerializer,
     ProductLineSerializer,
 )
@@ -30,19 +29,6 @@ class CategoryViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-class BrandViewSet(viewsets.ViewSet):
-    """
-    Simple view set to view all brands
-    """
-
-    queryset = Brand.active.all()
-    serializer_class = BrandSerializer
-
-    def list(self, request):
-        serializer = BrandSerializer(self.queryset, many=True)
-        return Response(serializer.data)
-
-
 class ProductViewSet(viewsets.ViewSet):
     """
     Simple view set to view all products,
@@ -51,7 +37,7 @@ class ProductViewSet(viewsets.ViewSet):
 
     queryset = (
         Product.active.all()
-        .select_related('category_id', 'brand_id')
+        .select_related('category_id')
         .prefetch_related(
             'product_line__attributes__attribute_id',
             'product_line__product_image',
@@ -71,7 +57,7 @@ class ProductViewSet(viewsets.ViewSet):
         return data
 
     def list(self, request):
-        connection.queries.clear()
+        # connection.queries.clear()
 
         serializer = ProductSerializer(
             self.queryset,

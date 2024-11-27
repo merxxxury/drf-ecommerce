@@ -8,7 +8,6 @@ from .product import views
 
 router = DefaultRouter()
 router.register(r'category', views.CategoryViewSet, basename='category')
-router.register(r'brand', views.BrandViewSet)
 router.register(r'product', views.ProductViewSet, basename='product')
 router.register(r'product-line', views.ProductLineViewSet, basename='product_line')
 

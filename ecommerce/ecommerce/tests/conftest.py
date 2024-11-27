@@ -4,26 +4,24 @@ import pytest
 
 from .factories import (
     CategoryFactory,
-    BrandFactory,
     ProductFactory,
     ProductLineFactory,
-    AttributeFactory,
-    AttributeValueFactory,
     ProductImageFactory,
     ProductTypeFactory,
+    AttributeFactory,
+    AttributeValueFactory,
 )
-
-
-register(CategoryFactory)
-register(BrandFactory)
-register(ProductFactory)
-register(ProductLineFactory)  # fixture name: product_line_factory
-register(AttributeFactory)
-register(AttributeValueFactory)
-register(ProductImageFactory)
-register(ProductTypeFactory)
 
 
 @pytest.fixture
 def api_client():
     return APIClient
+
+
+register(CategoryFactory)
+register(ProductFactory)
+register(ProductLineFactory)  # fixture name: product_line_factory
+register(ProductImageFactory)
+register(ProductTypeFactory)
+register(AttributeFactory)
+register(AttributeValueFactory)
