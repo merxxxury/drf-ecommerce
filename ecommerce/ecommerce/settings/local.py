@@ -14,6 +14,17 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'E-commerce',
-    'DESCRIPTION': 'Matcha store',
+    'DESCRIPTION': 'E store',
     'VERSION': '1.0.0',
+}
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'drf_ecom_db',
+        'USER': 'ecom_admin',
+        'PASSWORD': 'ecom_admin',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
 }

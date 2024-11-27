@@ -14,15 +14,6 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['category_name', 'slug']
 
 
-class BrandSerializer(serializers.ModelSerializer):
-    brand_name = serializers.CharField(source='name')
-
-    class Meta:
-        model = Brand
-        fields = ['brand_name']
-        # exclude = ['id']
-
-
 class AttributeSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -61,6 +52,7 @@ class ProductLineSerializer(serializers.ModelSerializer):
             'sku',
             'attributes',
             'display_order',
+            'is_active',
             'product_image',
         ]
 
@@ -89,14 +81,12 @@ class ProductLineSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    # FLATTEN. source 'brand_id' here is field in Product model
-    brand_name = serializers.CharField(source='brand_id.name')
-    # brand_id = BrandSerializer(read_only=True)
+    # FLATTEN. source 'category_id' here is field in Product model
     category_name = serializers.CharField(source='category_id.name', read_only=True)
     category_slug = serializers.CharField(source='category_id.slug', read_only=True)
 
     # product_line is related name in ProductLine model
-    product_line = ProductLineSerializer(many=True)
+    product_line = serializers.SerializerMethodField()
     product_attributes = serializers.SerializerMethodField()
 
     class Meta:
@@ -106,18 +96,22 @@ class ProductSerializer(serializers.ModelSerializer):
             'name',
             'slug',
             'description',
-            'brand_name',
+            'description',
             'category_name',
             'category_slug',
             'product_line',
             'product_attributes',
         ]
 
+    def get_product_line(self, obj):
+        active_product_lines = obj.product_line.filter(is_active=True)
+        return ProductLineSerializer(active_product_lines, many=True).data
+
     def get_product_attributes(self, obj):
         # func syntax: get_<field_name> or specify any name in method_name parameter
         # returns the attributes defined in the ProductType model for specific product
         product_attributes = Attribute.objects.filter(
-            product_type_attribute__product__id=obj.id
+            product_type_attribute__product_type=obj.id
         )
         return AttributeSerializer(product_attributes, many=True).data
 

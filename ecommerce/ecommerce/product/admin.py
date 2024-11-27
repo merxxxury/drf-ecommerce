@@ -1,10 +1,12 @@
 from django.contrib import admin
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from .forms import ProductLineAttributeValueFormSet, ProductLineAttributeValueForm
+
 
 from .models import (
     Product,
-    Brand,
     Category,
     ProductLine,
     Attribute,
@@ -13,29 +15,14 @@ from .models import (
     ProductType,
 )
 
-from django.core.exceptions import ValidationError
-from django.forms import BaseInlineFormSet
+
+class ProductLineAttributeValueInline(admin.TabularInline):
+    model = AttributeValue.product_line_attribute_value.through
+    form = ProductLineAttributeValueForm
+    formset = ProductLineAttributeValueFormSet
 
 
-class ProductLineAttributeValueInlineFormSet(BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        # use a set to track the unique attribute IDs
-        attribute_ids = set()
-
-        for form in self.forms:
-
-            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                attribute_value = form.cleaned_data.get('attribute_value')
-                if attribute_value.attribute_id:
-                    if attribute_value.attribute_id in attribute_ids:
-                        raise ValidationError(
-                            f'Allowed only one unique attribute name per product line.'
-                        )
-                    attribute_ids.add(attribute_value.attribute_id)
-
-
-class EditImageButton(object):
+class EditButton(object):
     def edit(self, instance):
         # Generate the URL to the ProductLineImage admin change list filtered by ProductLine
         url = reverse(
@@ -48,17 +35,7 @@ class EditImageButton(object):
         else:
             return ""
 
-    edit.short_description = "Edit Images"
-
-
-class BrandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active')  # Fields to display in the list view
-    list_editable = ('is_active',)
-    search_fields = ('name',)  # Add a search field for the name
-    list_filter = ('is_active',)  # Add a filter for active/inactive brands
-
-
-admin.site.register(Brand, BrandAdmin)
+    edit.short_description = "Edit"
 
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -68,17 +45,8 @@ class CategoryAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
 
 
-admin.site.register(Category, CategoryAdmin)
-# admin.site.register(AttributeValue)
-
-
 class ProductLineImageInline(admin.TabularInline):
     model = ProductImage
-
-
-class AttributeValueInline(admin.TabularInline):
-    model = AttributeValue.product_line_attribute_value.through
-    formset = ProductLineAttributeValueInlineFormSet
 
 
 class AttributeInline(admin.TabularInline):
@@ -88,11 +56,11 @@ class AttributeInline(admin.TabularInline):
 class ProductLineAdmin(admin.ModelAdmin):
     inlines = [
         ProductLineImageInline,
-        AttributeValueInline,
+        ProductLineAttributeValueInline,
     ]
 
 
-class ProductLineInline(EditImageButton, admin.TabularInline):
+class ProductLineInline(EditButton, admin.TabularInline):
     model = ProductLine
 
     readonly_fields = ['edit']
@@ -108,6 +76,7 @@ class ProductTypeAdmin(admin.ModelAdmin):
     inlines = [AttributeInline]
 
 
+admin.site.register(Category, CategoryAdmin)
 admin.site.register(ProductImage)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(ProductLine, ProductLineAdmin)

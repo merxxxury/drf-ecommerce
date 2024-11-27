@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 
 class OrderingField(models.PositiveIntegerField):
-    description = 'Ordering ProductLines for unique Product'
+    description = 'Ordering model instances in scope of related FK attribute'
 
     def __init__(self, unique_for_field=None, *args, **kwargs):
         self.unique_for_field = unique_for_field
@@ -26,7 +26,7 @@ class OrderingField(models.PositiveIntegerField):
             f.name for f in self.model._meta.get_fields()
         ]:
             return [
-                checks.Error('OrderingField does not match  an existing model field.')
+                checks.Error('OrderingField does not match an existing model field.')
             ]
 
         return []
@@ -60,7 +60,7 @@ class OrderingField(models.PositiveIntegerField):
             ):
                 raise ValidationError(
                     {
-                        self.attname: f'The display order "{value}" is already in use for this product. Please choose a different value.'
+                        self.attname: f'The display order "{value}" is already in use. Please choose a different value.'
                     }
                 )
         return super().pre_save(model_instance, add)

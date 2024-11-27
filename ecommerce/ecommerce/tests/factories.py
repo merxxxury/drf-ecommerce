@@ -1,9 +1,10 @@
 import factory
 from decimal import Decimal
 
+from faker.generator import random
+
 from ecommerce.product.models import (
     Category,
-    Brand,
     Product,
     ProductImage,
     Attribute,
@@ -17,18 +18,10 @@ class CategoryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Category
 
-    # name = 'test_category'  # this does not work because field name is unique
-    name = factory.Sequence(lambda n: f'Category=_{n}')  # field from Category model
+    name = factory.Sequence(lambda n: f'Category_{n}')  # field from Category model
+    slug = factory.Sequence(lambda n: f'category-{n}')
+    is_active = False
     # can be overridden directly in unit test as a parameter
-    is_active = True
-
-
-class BrandFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Brand
-
-    name = factory.Sequence(lambda n: f'Brand_{n}')
-    is_active = True
 
 
 class AttributeFactory(factory.django.DjangoModelFactory):
@@ -51,8 +44,16 @@ class AttributeValueFactory(factory.django.DjangoModelFactory):
 class ProductTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = ProductType
+        skip_postgeneration_save = True
 
     type_name = factory.Faker('word')
+
+    @factory.post_generation
+    def parent(self, create, extracted, **kwargs):
+        if extracted:
+            self.parent = extracted
+            if create:
+                self.save()
 
     @factory.post_generation
     def attributes(self, create, extracted, **kwargs):
@@ -64,36 +65,44 @@ class ProductTypeFactory(factory.django.DjangoModelFactory):
 class ProductFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Product
+        skip_postgeneration_save = True
 
     name = factory.Sequence(lambda n: f'Product_{n}')
     slug = factory.Faker('slug')
+    pid = factory.Sequence(lambda n: f'00000{n}')
     description = factory.Faker('sentence')
-    is_matcha = True
     category_id = factory.SubFactory(CategoryFactory)
-    brand_id = factory.SubFactory(BrandFactory)
-    is_active = True
     product_type_id = factory.SubFactory(ProductTypeFactory)
+
+    @factory.post_generation
+    def attribute_values(self, created, extracted, **kwargs):
+        if not created or not extracted:
+            return
+        self.attribute_values.add(*extracted)
+        self.save()
 
 
 class ProductLineFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = ProductLine
+        skip_postgeneration_save = True
 
-    price = Decimal('19.99')
+    display_order = factory.Sequence(lambda n: n)
+    price = factory.LazyFunction(lambda: round(random.uniform(1, 10000), 2))
+    slug = factory.Faker('slug')
     second_name = factory.Faker('word')
     second_description = factory.Faker('sentence')
-    slug = factory.Faker('slug')
     sku = factory.Sequence(lambda n: f'SKU-{n}')
-    quantity = 10
+    # weight = factory.LazyFunction(lambda: round(random.uniform(0, 100), 3))
     product_id = factory.SubFactory(ProductFactory)
-    is_active = True
-    display_order = factory.Sequence(lambda n: n)
+    product_type_id = factory.SubFactory(ProductTypeFactory)
 
     @factory.post_generation
     def attributes(self, create, extracted, **kwargs):
         if not create or not extracted:
             return
         self.attributes.add(*extracted)
+        self.save()
 
 
 class ProductImageFactory(factory.django.DjangoModelFactory):
